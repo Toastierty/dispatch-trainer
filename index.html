@@ -75,7 +75,7 @@ footer{color:var(--mut);text-align:center;font-size:12px;padding:20px}
  <div id="clock"><span id="clk">--:--:--</span><small>local · 24-hr</small></div></div>
  <nav id="tabs">
   <button data-t="home" class="on">Home</button><button data-t="flash">Flashcards</button><button data-t="quiz">Quiz</button>
-  <button data-t="mapg">Map Game</button><button data-t="sim">Dispatch Sim</button><button data-t="cad">CAD Board</button><button data-t="ref">Reference</button>
+  <button data-t="mapg">Map Game</button><button data-t="sim">Dispatch Sim</button><button data-t="cad">CAD Board</button><button data-t="ref">Reference</button><a href="shift.html" style="flex:0 0 auto;background:#b3122e;color:#fff;padding:8px 13px;border-radius:999px;font-weight:700;text-decoration:none;font-size:14px">🚁 Start Shift</a>
  </nav>
 </header>
 <main>
@@ -90,6 +90,7 @@ footer{color:var(--mut);text-align:center;font-size:12px;padding:20px}
   <div class="card" style="margin:0"><div class="mut">Map best score</div><div class="stat" id="hMap">–</div></div>
   <div class="card" style="margin:0"><div class="mut">Sim calls completed</div><div class="stat" id="hSim">0</div><div class="mut" id="hSimAvg"></div></div>
  </div></div>
+ <div class="card" style="border-color:#b3122e"><div class="row"><div style="flex:1"><h3>🚁 New: Start Shift mode</h3><p class="mut">A realistic real-time comm-center shift: ringing lines, caller interviews, pilot weather checks, flight plans, flight following, ER notifications &amp; paging, live map and an end-of-shift report card.</p><p class="mut" id="hShift"></p></div><a class="btn pri" href="shift.html" style="text-decoration:none">Start Shift ▶</a></div></div>
  <div class="grid g2">
   <div class="card"><h3>Suggested 4-week plan before orientation</h3><ol class="mut" style="padding-left:18px;margin:6px 0">
    <li><b>Week 1:</b> Phonetic alphabet + 24-hr time until instant. Quiz daily.</li>
@@ -259,7 +260,8 @@ const clk=()=>$('#clk').textContent=hhmmss();setInterval(clk,1000);clk();
 function renderHome(){const m=store.get('mastered',{});const n=CARDS.filter(c=>m[cardId(c)]).length;$('#hMast').textContent=n+' / '+CARDS.length;$('#hMastBar').style.width=(100*n/CARDS.length)+'%';
  const q=store.get('quizHist',[]);$('#hQuiz').textContent=q.length?Math.max(...q.map(x=>x.pct))+'% / '+q.length:'–';
  const mp=store.get('mapBest',null);$('#hMap').textContent=mp!=null?mp+'%':'–';
- const s=store.get('simRes',{});const k=Object.keys(s);$('#hSim').textContent=k.length+' / '+SCEN.length;$('#hSimAvg').textContent=k.length?'avg best '+Math.round(k.reduce((a,x)=>a+s[x],0)/k.length)+'%':''}
+ const s=store.get('simRes',{});const k=Object.keys(s);$('#hSim').textContent=k.length+' / '+SCEN.length;try{const sh=JSON.parse(localStorage.getItem('dt_shiftHist')||'[]');$('#hShift').textContent=sh.length?'Last shift: '+sh[0].pct+'% · '+sh[0].calls+' calls · '+sh.length+' shift(s) played':''}catch(e){}
+ $('#hSimAvg').textContent=k.length?'avg best '+Math.round(k.reduce((a,x)=>a+s[x],0)/k.length)+'%':''}
 $('#resetAll').onclick=()=>{if(confirm('Reset all saved progress?')){Object.keys(localStorage).filter(k=>k.startsWith('dt_')).forEach(k=>localStorage.removeItem(k));cad=freshCad();chk={};renderChk();renderCad();renderHome();renderQHist();renderScen();fBuild();toast('Progress reset')}};
 
 DECKS.forEach(d=>{$('#fDeck').add(new Option(d,d));$('#qDeck').add(new Option(d==='All'?'All (mixed + scenarios)':d,d))});
