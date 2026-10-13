@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dispatch Trainer — Air Medical Coordinator Practice</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+:root{--bg:#0b1220;--panel:#121b2e;--panel2:#18233b;--line:#26344f;--txt:#e6edf7;--mut:#93a3bd;--acc:#3ea6ff;--ok:#2ecc71;--warn:#f5b041;--bad:#ff5c5c;--radius:14px}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:1000;background:linear-gradient(180deg,#0e1830,#0b1220);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.logo{width:34px;height:34px;border-radius:9px;background:radial-gradient(circle at 30% 30%,#ff6b6b,#b3122e);display:grid;place-items:center;font-weight:800}
+.top h1{font-size:16px;margin:0}.top small{color:var(--mut);display:block;font-size:12px}
+#clock{margin-left:auto;font:600 18px ui-monospace,Menlo,Consolas,monospace;color:#7fe3a0;text-align:right}
+#clock small{font:11px system-ui;color:var(--mut);display:block}
+nav{display:flex;overflow-x:auto;gap:4px;padding:0 10px 8px;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;background:transparent;border:1px solid transparent;color:var(--mut);padding:8px 13px;border-radius:999px;font-weight:600;cursor:pointer;font-size:14px}
+nav button.on{background:var(--acc);color:#04121f}nav button:hover:not(.on){border-color:var(--line);color:var(--txt)}
+main{max-width:1100px;margin:0 auto;padding:16px}
+section{display:none}section.on{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+h2{margin:0 0 8px;font-size:20px}h3{margin:0 0 6px;font-size:16px}p{margin:6px 0}.mut{color:var(--mut)}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px}
+.btn:hover{border-color:var(--acc)}.btn.pri{background:var(--acc);color:#04121f;border-color:var(--acc)}.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{border-color:#7a2a2a;color:#ffb3b3}.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,input,textarea{background:#0d1528;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font:inherit}
+textarea{width:100%;min-height:90px;resize:vertical}
+.disc{border-left:4px solid var(--warn);background:#2a2110;color:#ffe2a8;padding:10px 14px;border-radius:10px;font-size:13.5px;margin-bottom:14px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:var(--panel2);border:1px solid var(--line);color:var(--mut)}
+.bar{height:8px;background:#0d1528;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--ok));width:0;transition:width .4s}
+.stat{font-size:28px;font-weight:800}
+.flip{perspective:1200px;height:270px;cursor:pointer;margin:10px 0}
+.flip .in{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flip.f .in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid var(--line)}
+.front{background:linear-gradient(145deg,#16264a,#101a30)}.back{background:linear-gradient(145deg,#12324a,#0f2233);transform:rotateY(180deg)}
+.front .term{font-size:32px;font-weight:800;margin-top:8px}.back .def{font-size:17px}.face .hint{position:absolute;bottom:10px;font-size:12px;color:var(--mut)}
+.face .ex{margin-top:10px;font-size:13.5px;color:#a8d8ff}
+.opt{display:block;width:100%;text-align:left;margin:7px 0;padding:12px 14px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);cursor:pointer;font-size:15px}
+.opt:hover:not(:disabled){border-color:var(--acc)}.opt.ok{background:#123a26;border-color:var(--ok)}.opt.no{background:#3a1616;border-color:var(--bad)}
+.fb{padding:12px 14px;border-radius:11px;margin-top:10px;font-size:14.5px}.fb.ok{background:#0f2e1f;border:1px solid #1e6b43}.fb.no{background:#2e1212;border:1px solid #7a2a2a}.fb.info{background:#0f2236;border:1px solid #234d77}
+#map{height:min(62vh,560px);border-radius:var(--radius);border:1px solid var(--line)}
+.prompt{font-size:18px;font-weight:700}
+.radio{font:15px/1.55 ui-monospace,Menlo,Consolas,monospace;background:#07101f;border:1px solid #1d3355;border-radius:12px;padding:12px 14px;margin:8px 0;white-space:pre-wrap}
+.radio .who{color:#7fe3a0;font-weight:700}.radio.phone .who{color:#ffcf6b}
+.coach{background:#14233a;border:1px solid #2d4f7c;border-radius:12px;padding:12px 14px;margin-top:10px}
+.coach b{color:#9fd3ff}.coach ul{margin:6px 0 0 18px;padding:0}
+.scen{cursor:pointer;transition:transform .15s}.scen:hover{transform:translateY(-2px);border-color:var(--acc)}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#1b2c4a;color:#9fd3ff;margin-right:4px}
+.simlayout{display:grid;grid-template-columns:1fr 330px;gap:14px}@media(max-width:860px){.simlayout{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mut);font-weight:600}
+.st{font-weight:700;padding:2px 8px;border-radius:6px;font-size:12px;white-space:nowrap}
+.st-AVL{background:#0f3a24;color:#7fe3a0}.st-ENR{background:#3a300f;color:#ffd36b}.st-ONS{background:#3a1f0f;color:#ffab6b}.st-TRN{background:#2a1a45;color:#c9a6ff}.st-ATH{background:#10304a;color:#7cc4ff}.st-RTB{background:#1f2a3a;color:#c0d0e6}.st-OOS{background:#3a1212;color:#ff9c9c}.st-WX{background:#333;color:#ddd}
+.log{max-height:300px;overflow:auto;font:13px ui-monospace,Menlo,Consolas,monospace}.log div{padding:3px 0;border-bottom:1px dashed #1f2c44}
+.timer{font:700 16px ui-monospace,Menlo,monospace}.timer.late{color:var(--bad);animation:blink 1s infinite}.timer.soon{color:var(--warn)}
+@keyframes blink{50%{opacity:.4}}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:6px 0;background:var(--panel2);cursor:pointer}
+.chk input{margin-top:3px;width:18px;height:18px;flex:0 0 auto}
+.kbd{font:12px ui-monospace,monospace;background:#0d1528;border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+@media(max-width:600px){#cTable th:nth-child(2),#cTable td:nth-child(2){display:none}#cTable select{max-width:120px}.top h1{font-size:15px}}
+.leaflet-container:focus,.leaflet-container *:focus{outline:none}
+footer{color:var(--mut);text-align:center;font-size:12px;padding:20px}
+.ph td:first-child{font-weight:800;color:#7cc4ff;width:40px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1e3a5f;border:1px solid var(--acc);padding:10px 16px;border-radius:12px;z-index:3000;display:none;max-width:90vw}
+</style>
+</head>
+<body>
+<header>
+ <div class="top"><div class="logo">✚</div><div><h1>Dispatch Trainer</h1><small>Air medical coordinator practice · generic, not protocol</small></div>
+ <div id="clock"><span id="clk">--:--:--</span><small>local · 24-hr</small></div></div>
+ <nav id="tabs">
+  <button data-t="home" class="on">Home</button><button data-t="flash">Flashcards</button><button data-t="quiz">Quiz</button>
+  <button data-t="mapg">Map Game</button><button data-t="sim">Dispatch Sim</button><button data-t="cad">CAD Board</button><button data-t="ref">Reference</button>
+ </nav>
+</header>
+<main>
+<div class="disc"><b>Disclaimer:</b> Generic practice material for orientation prep only. It is <b>not</b> MetroHealth / Metro Life Flight protocol, policy, or SOP. Unit names, scenarios, phone numbers, and timing values are fictional or typical industry examples. Your real training, preceptors, and official protocols always take precedence.</div>
+
+<section id="home" class="on">
+ <div class="card"><h2>Welcome, Gavin 👋</h2>
+ <p>A night-shift practice kit for your new role in an air medical communications center. Work through the tabs in any order — progress saves on this device.</p>
+ <div class="grid g3" style="margin-top:12px">
+  <div class="card" style="margin:0"><div class="mut">Flashcards mastered</div><div class="stat" id="hMast">0</div><div class="bar"><i id="hMastBar"></i></div></div>
+  <div class="card" style="margin:0"><div class="mut">Quiz best / attempts</div><div class="stat" id="hQuiz">–</div></div>
+  <div class="card" style="margin:0"><div class="mut">Map best score</div><div class="stat" id="hMap">–</div></div>
+  <div class="card" style="margin:0"><div class="mut">Sim calls completed</div><div class="stat" id="hSim">0</div><div class="mut" id="hSimAvg"></div></div>
+ </div></div>
+ <div class="grid g2">
+  <div class="card"><h3>Suggested 4-week plan before orientation</h3><ol class="mut" style="padding-left:18px;margin:6px 0">
+   <li><b>Week 1:</b> Phonetic alphabet + 24-hr time until instant. Quiz daily.</li>
+   <li><b>Week 2:</b> Aviation/weather terms; Map Game (hospitals first, then counties).</li>
+   <li><b>Week 3:</b> Dispatch Sim — each call twice; read the coaching notes.</li>
+   <li><b>Week 4:</b> CAD Board drills with the flight-following timer running; mixed quizzes.</li></ol></div>
+  <div class="card"><h3>Habits of a strong coordinator</h3><ul class="mut" style="padding-left:18px;margin:6px 0">
+   <li>Get a <b>callback number</b> first — calls drop.</li><li><b>Read back</b> numbers: coordinates, frequencies, times, weights.</li>
+   <li>The pilot makes the <b>weather go/no-go</b> decision — commonly without patient details.</li>
+   <li>Timestamp everything (24-hr). If it isn't logged, it didn't happen.</li><li>Missed check-in? Act immediately — follow your overdue-aircraft plan.</li></ul></div>
+ </div>
+ <div class="card"><div class="row"><button class="btn danger sm" id="resetAll">Reset all progress</button><span class="mut">Clears saved scores on this device.</span></div></div>
+</section>
+
+<section id="flash">
+ <div class="card"><div class="row"><h2 style="margin-right:auto">Flashcards</h2>
+  <select id="fDeck"></select><label class="row mut"><input type="checkbox" id="fUnmast"> hide mastered</label><button class="btn sm" id="fShuf">Shuffle</button></div>
+  <div class="row mut" style="margin-top:6px"><span id="fPos"></span><span>·</span><span id="fMastCt"></span><span>· Tap card to flip · <span class="kbd">Space</span> flip <span class="kbd">←</span><span class="kbd">→</span> nav</span></div>
+  <div class="flip" id="fCard"><div class="in"><div class="face front"><div class="pill" id="fCat"></div><div class="term" id="fTerm"></div><div class="hint">tap to flip</div></div>
+   <div class="face back"><div class="def" id="fDef"></div><div class="ex" id="fEx"></div><div class="hint">tap to flip back</div></div></div></div>
+  <div class="row" style="justify-content:center"><button class="btn" id="fPrev">◀ Prev</button><button class="btn" id="fAgain">↺ Still learning</button><button class="btn pri" id="fGot">✓ Got it</button><button class="btn" id="fNext">Next ▶</button><button class="btn" id="fSpeak" title="Read aloud">🔊</button></div>
+ </div>
+</section>
+
+<section id="quiz">
+ <div class="card"><div class="row"><h2 style="margin-right:auto">Quiz</h2><select id="qDeck"></select><select id="qLen"><option>10</option><option>20</option><option>30</option></select><button class="btn pri" id="qStart">Start</button></div>
+ <div class="mut">Mixed formats: term→definition, definition→term, phonetic spelling of unit IDs, 24-hr time conversion, and scenario judgment questions (in “All”).</div></div>
+ <div class="card" id="qBox" style="display:none"><div class="row"><span class="pill" id="qProg"></span><span class="pill" id="qScore"></span></div><div class="bar" style="margin:10px 0"><i id="qBar"></i></div>
+  <div class="prompt" id="qQ"></div><div id="qOpts"></div><div id="qFb"></div><div class="row" style="margin-top:10px"><button class="btn pri" id="qNext" style="display:none">Next</button></div></div>
+ <div class="card"><h3>History</h3><div id="qHistT" class="mut">No quizzes yet.</div></div>
+</section>
+
+<section id="mapg">
+ <div class="card"><div class="row"><h2 style="margin-right:auto">Northeast Ohio Map Game</h2>
+  <select id="mSet"><option value="hosp">Hospitals / trauma centers</option><option value="cnty">Counties</option><option value="mix">Mixed</option></select>
+  <select id="mMode"><option value="find">Find it (click the map)</option><option value="name">Name it (multiple choice)</option></select>
+  <button class="btn pri" id="mStart">Start round</button><button class="btn sm" id="mStudy">Study mode</button></div>
+  <div class="row" style="margin-top:8px"><span class="prompt" id="mPrompt">Press “Start round”. Use Study mode to see every location first.</span></div>
+  <div class="row mut" id="mStat"></div><div id="mOpts" class="grid g2" style="margin-top:6px"></div></div>
+ <div id="map"></div><div id="mapErr" class="fb no" style="display:none">Leaflet/map tiles could not load (offline?). The Map Game needs internet for the map library and tiles; every other tab works offline.</div>
+ <div class="card" style="margin-top:14px"><h3>About the locations</h3><p class="mut">Hospital coordinates were checked against public sources (hospital websites, Wikipedia, OpenStreetMap-derived listings) in Oct 2026. County points are approximate geographic centers, so county scoring is generous. Trauma levels shown only where publicly documented — verify current designations with your center. Life Flight base locations are intentionally <b>not</b> included; learn them in orientation.</p><div id="mList" style="overflow-x:auto"></div></div>
+</section>
+
+<section id="sim">
+ <div id="simPick"><div class="card"><h2>Dispatch Simulator</h2><p class="mut">Scripted, branching training calls. Read the incoming traffic (🔊 reads it aloud), choose or type your response, then read the coaching. Status changes post to the CAD Board. Scoring is for self-assessment only.</p>
+  <div class="row"><label class="row mut"><input type="checkbox" id="sSpeak"> Auto read-aloud</label><label class="row mut"><input type="checkbox" id="sCad" checked> Post events to CAD Board</label></div></div>
+  <div class="grid g2" id="scenList"></div></div>
+ <div id="simRun" style="display:none"><div class="simlayout"><div>
+  <div class="card"><div class="row"><h3 id="sTitle" style="margin-right:auto"></h3><span class="pill" id="sStep"></span><span class="pill" id="sPts"></span></div><div class="bar" style="margin-top:8px"><i id="sBar"></i></div></div>
+  <div class="card" id="sBody"></div></div>
+  <div><div class="card"><h3>Call worksheet</h3><div class="mut" style="font-size:13px">Jot details as you go (not scored).</div><textarea id="sNotes" style="min-height:220px;font-family:ui-monospace,monospace;font-size:13px" placeholder="Callback #:
+Agency / requester:
+Location / lat-long:
+Pt age / wt / complaint:
+LZ / ground contact / channel:
+Wx:
+Times (24-hr):"></textarea>
+  <div class="row" style="margin-top:8px"><button class="btn sm" id="sRead">🔊 Read traffic</button><button class="btn sm danger" id="sQuit">Exit call</button></div></div></div></div></div>
+ <div id="simEnd" style="display:none" class="card"></div>
+</section>
+
+<section id="cad">
+ <div class="card"><div class="row"><h2 style="margin-right:auto">CAD-style Status Board <span class="pill">practice</span></h2><button class="btn sm" id="cDrill">▶ Random drill</button><button class="btn sm danger" id="cReset">Reset board</button></div>
+ <p class="mut">Fictional units. Change a status from its dropdown — each change is timestamped in the log. Putting an aircraft ENR/TRN/RTB arms its flight-following timer; log each check-in to reset it. A missed timer raises an alert.</p>
+ <div style="overflow-x:auto"><table id="cTable"><thead><tr><th>Unit</th><th>Type</th><th>Status</th><th>Since</th><th>Location / note</th><th>Next check-in</th><th></th></tr></thead><tbody></tbody></table></div>
+ <div class="row" style="margin-top:10px"><span class="mut">Flight-following interval:</span><select id="cInt"><option value="60">1 min (drill)</option><option value="300">5 min</option><option value="600">10 min</option><option value="900" selected>15 min</option></select><span class="mut">(intervals vary by program — learn yours)</span></div></div>
+ <div class="grid g2">
+  <div class="card"><h3>Event log</h3><div class="row"><input id="cMsg" placeholder="Manual log entry…" style="flex:1;min-width:150px"><button class="btn sm pri" id="cAdd">Log</button><button class="btn sm" id="cExport">Export .txt</button></div><div class="log" id="cLog" style="margin-top:8px"></div></div>
+  <div class="card"><h3>Overdue-aircraft practice checklist (generic)</h3><div class="mut" style="font-size:13px">Typical industry elements only — your program’s Post-Accident/Incident Plan (PAIP) defines the real steps and timing.</div><div id="cChk"></div><button class="btn sm" id="cChkClr" style="margin-top:6px">Clear checks</button></div>
+ </div>
+</section>
+
+<section id="ref">
+ <div class="grid g2">
+  <div class="card"><h3>Phonetic alphabet (ICAO/NATO)</h3><table class="ph" id="rPh"></table></div>
+  <div class="card"><h3>24-hour time</h3><p class="mut">Midnight = 0000, noon = 1200. After 1 PM add 12 (3:45 PM → 1545). Zulu (UTC) = Eastern + 4 h during daylight time (EDT), + 5 h during standard time (EST).</p>
+   <div class="row"><input id="rT" placeholder="e.g. 9:30 pm or 2130" style="flex:1"><button class="btn sm pri" id="rTc">Convert</button></div><div id="rTo" class="fb info" style="display:none"></div>
+   <h3 style="margin-top:14px">Spell it out</h3><div class="row"><input id="rS" placeholder="Type a unit ID / word" style="flex:1"><button class="btn sm pri" id="rSc">Spell</button></div><div id="rSo" class="fb info" style="display:none"></div>
+   <h3 style="margin-top:14px">Lat/long converter</h3><p class="mut" style="font-size:13px">Decimal ↔ degrees + decimal minutes (common on aviation GPS).</p><div class="row"><input id="rL" placeholder="41.4608, -81.6988  or  N41 27.65 W81 41.93" style="flex:1"><button class="btn sm pri" id="rLc">Convert</button></div><div id="rLo" class="fb info" style="display:none"></div></div>
+  <div class="card"><h3>Number pronunciation</h3><table><tr><td>0</td><td>ZE-RO</td><td>5</td><td>FIFE</td></tr><tr><td>3</td><td>TREE</td><td>9</td><td>NIN-er</td></tr><tr><td>4</td><td>FOW-er</td><td>.</td><td>DECIMAL / POINT</td></tr></table><p class="mut">Say digits individually for frequencies &amp; coordinates: “one two three point four fife”.</p></div>
+  <div class="card"><h3>Generic scene-request intake (memory aid)</h3><ol class="mut" style="padding-left:18px"><li>Requesting agency, name, <b>callback #</b></li><li>Location: address/cross streets, county, <b>lat/long</b></li><li>Nature/mechanism, # patients, age, approx. <b>weight</b></li><li>LZ: location, ground contact unit &amp; <b>radio channel</b>, hazards (wires, towers, trees, slope, debris)</li><li>Destination preference (if any)</li><li>Weather check → pilot accept/decline</li><li>Give ETA, read back key items, timestamp</li></ol></div>
+ </div>
+</section>
+</main>
+<footer>Practice tool · Works offline except the Map Game (needs CDN + tiles) · Progress stored in this browser (localStorage)</footer>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store={get(k,d){try{const v=localStorage.getItem('dt_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('dt_'+k,JSON.stringify(v))}catch(e){}}};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pad=n=>String(n).padStart(2,'0');
+const hhmm=(d=new Date())=>pad(d.getHours())+pad(d.getMinutes());
+const hhmmss=(d=new Date())=>pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2600)}
+function speak(text){try{if(!('speechSynthesis' in window))return toast('Speech not supported in this browser');speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/\[[^\]]*\]/g,''));u.rate=1.02;speechSynthesis.speak(u)}catch(e){}}
+
+const PH=["Alfa","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India","Juliett","Kilo","Lima","Mike","November","Oscar","Papa","Quebec","Romeo","Sierra","Tango","Uniform","Victor","Whiskey","X-ray","Yankee","Zulu"];
+const NUMW={0:'Zero',1:'One',2:'Two',3:'Tree',4:'Fower',5:'Fife',6:'Six',7:'Seven',8:'Eight',9:'Niner'};
+const CARDS=[];
+PH.forEach(w=>CARDS.push({d:'Phonetic',t:w[0],a:w,ex:'ICAO spellings are “Alfa” and “Juliett”.'}));
+const T=(t,a,ex,d)=>CARDS.push({d,t,a,ex});
+[
+['ETA','Estimated Time of Arrival — the clock time the aircraft/unit expects to arrive (e.g., “ETA 0214”).','Confirm whether you mean clock time or minutes from now.'],
+['ETE','Estimated Time En route — duration of the flight leg (e.g., “ETE 18 minutes”).','Lift time + ETE ≈ ETA.'],
+['VFR','Visual Flight Rules — flying by outside visual reference; requires weather at or above VFR minimums.','Most HEMS scene flights are VFR.'],
+['IFR','Instrument Flight Rules — flying by instruments under ATC clearance; requires IFR-capable aircraft/crew and suitable approaches.','Some programs fly IFR between hospitals/airports.'],
+['IMC / VMC','Instrument vs. Visual Meteorological Conditions — the actual weather; IMC = below VFR minimums.','Inadvertent IMC (unexpectedly entering cloud) is a major HEMS accident risk.'],
+['Ceiling','Height above ground of the lowest broken (BKN) or overcast (OVC) cloud layer.','“Ceiling 800 overcast” = sky covered at 800 ft AGL.'],
+['Visibility','Horizontal distance you can see, reported in statute miles (SM) in the US.','“Vis 3 SM in mist (BR).”'],
+['Weather minimums','Lowest ceiling and visibility allowed for a flight — set by FAA rules (e.g., Part 135 HEMS rules) and often stricter company policy; differ for day/night and local/cross-country.','The pilot and program policy decide, not the coordinator.'],
+['Weather turndown','A pilot declining a request because weather is below minimums or unsafe. Many regions share turndowns between services to prevent “helicopter shopping.”','Log it, tell the requester promptly, offer alternatives.'],
+['METAR / TAF','METAR = current airport weather observation (usually hourly). TAF = terminal aerodrome forecast.','KCLE = Cleveland Hopkins; KBKL = Burke Lakefront; KCAK = Akron-Canton.'],
+['NOTAM','Notice to Air Missions — time-critical notices about airspace, airports, and obstacles (e.g., unlit tower), including TFRs.','Pilots check NOTAMs before flight.'],
+['TFR','Temporary Flight Restriction — restricted airspace for events, VIPs, disasters.','Stadium events and VIP visits can create TFRs.'],
+['LZ','Landing Zone — area where the helicopter lands at a scene; a commonly taught size is about 100×100 ft, flat, firm, and obstacle-free (use your local standard).','Ground contact selects, secures, and describes it.'],
+['LZ hazards','Wires/power lines, towers, trees, poles, signs, vehicles, loose debris, people, slope, soft ground, snow/dust (whiteout/brownout).','Ask “Any wires or obstacles near the LZ?” every time.'],
+['Hot load / unload','Loading or unloading a patient with rotors turning. Higher risk; crew-directed only.','Approach only when signaled by the crew.'],
+['Cold load','Loading with engines shut down and rotors stopped.','The safer default in many programs.'],
+['Flight following','Continuous tracking of the aircraft by the comm center — satellite/GPS tracking plus periodic position check-ins (commonly ~every 15 min).','Log each position report; a missed check-in triggers escalation.'],
+['Overdue aircraft','An aircraft that misses a required check-in or fails to arrive by ETA (plus a defined grace period) and cannot be contacted.','Triggers the Post-Accident/Incident Plan.'],
+['PAIP','Post-Accident/Incident Plan — the required written plan for what the comm center does when an aircraft is overdue, missing, or down.','Know where your PAIP checklist is on day one.'],
+['Weight & balance','Calculation ensuring aircraft weight and center of gravity stay within limits — affected by patient, crew, fuel, and equipment.','Why you ask “approximate patient weight?”'],
+['Fuel on board (FOB)','Fuel currently in the aircraft, often stated as time (hours+minutes) or pounds.','Determines whether a refuel stop is needed.'],
+['Lat / long','Latitude/longitude. Cleveland is about 41.5° N, 81.7° W (west = negative in decimal).','Read back every digit; confirm decimal vs. degrees-minutes.'],
+['CCT','Critical Care Transport — transport of critically ill patients by a team with expanded scope (nurse/paramedic/RT), by ground or air.','Ground CCT is an alternative when the aircraft can’t fly.'],
+['HEMS','Helicopter Emergency Medical Services.','Operates under FAA Part 135 with specific HEMS rules.'],
+['Interfacility (IFT)','Transport between hospitals (e.g., community ED → PCI or stroke center). Usually needs an accepting physician and bed.','Get sending unit/room, accepting MD, destination unit.'],
+['Scene flight','Response to a prehospital incident (crash, trauma) at the request of EMS/fire/police, landing at an LZ.','Requester provides LZ and ground contact.'],
+['Rotor wing / fixed wing','Helicopter vs. airplane. Fixed wing covers long distances airport-to-airport.','Fixed wing needs ground legs at both ends.'],
+['AGL / MSL','Altitude Above Ground Level vs. above Mean Sea Level.','Ceilings are reported AGL.'],
+['Zulu time','UTC — the time standard used in aviation weather and flight plans.','Eastern Daylight = UTC−4; Eastern Standard = UTC−5.'],
+['Mutual aid / alternate service','Another air or ground service contacted when your resource is unavailable or turned down.','Always disclose a weather turndown to them.'],
+['STEMI','ST-elevation myocardial infarction — heart attack needing emergent cardiac catheterization (PCI).','Time-critical interfacility transfer.'],
+['Stroke / LVO','Large vessel occlusion stroke — may need thrombectomy at a comprehensive or thrombectomy-capable stroke center.','“Last known well” time is critical.'],
+['Ground contact','The person/unit at the scene talking to the aircraft about the LZ, usually on an assigned radio channel.','Get unit ID and channel.'],
+['Transponder / squawk','A 4-digit code the aircraft transmits to ATC radar.','You may hear it during ATC coordination.'],
+].forEach(r=>T(r[0],r[1],r[2],'Aviation & Air Medical'));
+[
+['Copy','I received and understood your message (not necessarily agreement).','“Copy, LZ is the high school football field.”'],
+['Roger','Message received (not the same as “yes”).',''],
+['Affirmative','Yes.','Avoid “yeah” or “uh-huh” — easily garbled.'],
+['Negative','No.',''],
+['Say again','Repeat your last transmission. (Avoid “repeat” — it has a different military meaning.)','“Say again the coordinates.”'],
+['Standby','Wait — I will get back to you. Not a yes or a no.','Follow up promptly after telling someone to stand by.'],
+['Readback','Repeating critical information back to the sender to confirm accuracy.','“Reading back: four one point four six zero eight, west eight one point six niner eight eight.”'],
+['Wilco','Will comply.',''],
+['Over / Out','Over = my transmission ends, reply expected. Out = conversation ended. (“Over and out” is contradictory.)',''],
+['Correction','I made an error — the correct version follows.','“Correction, ETA one-two minutes.”'],
+['Go ahead','Send your message.',''],
+['Unable','I cannot comply.',''],
+['Mayday / Pan-Pan','Mayday = distress, grave and imminent danger. Pan-Pan = urgency, no immediate danger.','Any distress call is top priority — follow your PAIP.'],
+['Loud and clear','Radio check response — signal is strong and readable.','Some use readability 1–5: “five by five.”'],
+].forEach(r=>T(r[0],r[1],r[2],'Radio Procedure'));
+[['12:00 AM (midnight)','0000'],['12:30 AM','0030'],['1:15 AM','0115'],['3:05 AM','0305'],['6:45 AM','0645'],['9:30 AM','0930'],['12:00 PM (noon)','1200'],['12:45 PM','1245'],['1:00 PM','1300'],['2:20 PM','1420'],['4:50 PM','1650'],['6:15 PM','1815'],['7:00 PM','1900'],['8:40 PM','2040'],['9:59 PM','2159'],['10:30 PM','2230'],['11:15 PM','2315'],['11:59 PM','2359']]
+ .forEach(([c,m])=>T(m,c,'Spoken: “'+m.split('').map(x=>NUMW[x]).join(' ')+'” or “'+m+' hours”.','24-Hour Time'));
+const DECKS=['All','Phonetic','24-Hour Time','Aviation & Air Medical','Radio Procedure'];
+const cardId=c=>c.d+'|'+c.t;
+
+let mapInit=false;
+$$('#tabs button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+function go(t){$$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));$$('main section').forEach(s=>s.classList.toggle('on',s.id===t));
+ if(t==='mapg')initMap();if(t==='home')renderHome();if(t==='cad')renderCad();window.scrollTo(0,0);history.replaceState(null,'','#'+t)}
+const clk=()=>$('#clk').textContent=hhmmss();setInterval(clk,1000);clk();
+
+function renderHome(){const m=store.get('mastered',{});const n=CARDS.filter(c=>m[cardId(c)]).length;$('#hMast').textContent=n+' / '+CARDS.length;$('#hMastBar').style.width=(100*n/CARDS.length)+'%';
+ const q=store.get('quizHist',[]);$('#hQuiz').textContent=q.length?Math.max(...q.map(x=>x.pct))+'% / '+q.length:'–';
+ const mp=store.get('mapBest',null);$('#hMap').textContent=mp!=null?mp+'%':'–';
+ const s=store.get('simRes',{});const k=Object.keys(s);$('#hSim').textContent=k.length+' / '+SCEN.length;$('#hSimAvg').textContent=k.length?'avg best '+Math.round(k.reduce((a,x)=>a+s[x],0)/k.length)+'%':''}
+$('#resetAll').onclick=()=>{if(confirm('Reset all saved progress?')){Object.keys(localStorage).filter(k=>k.startsWith('dt_')).forEach(k=>localStorage.removeItem(k));cad=freshCad();chk={};renderChk();renderCad();renderHome();renderQHist();renderScen();fBuild();toast('Progress reset')}};
+
+DECKS.forEach(d=>{$('#fDeck').add(new Option(d,d));$('#qDeck').add(new Option(d==='All'?'All (mixed + scenarios)':d,d))});
+let fList=[],fI=0;
+function fBuild(){const d=$('#fDeck').value,m=store.get('mastered',{});fList=CARDS.filter(c=>(d==='All'||c.d===d)&&!($('#fUnmast').checked&&m[cardId(c)]));fI=0;fRender()}
+function fRender(){const m=store.get('mastered',{});const wasF=$('#fCard').classList.contains('f');$('#fCard').classList.remove('f');const all=CARDS.filter(c=>$('#fDeck').value==='All'||c.d===$('#fDeck').value);
+ $('#fMastCt').textContent=all.filter(c=>m[cardId(c)]).length+' / '+all.length+' mastered';
+ if(!fList.length){$('#fTerm').textContent='🎉 All mastered';$('#fDef').textContent='Uncheck “hide mastered” to review.';$('#fCat').textContent='';$('#fEx').textContent='';$('#fPos').textContent='';return}
+ const c=fList[fI];const put=()=>{$('#fTerm').textContent=c.t;$('#fDef').textContent=c.a;$('#fEx').textContent=c.ex||''};wasF?setTimeout(put,200):put();$('#fCat').textContent=c.d+(m[cardId(c)]?' · ✓ mastered':'');$('#fPos').textContent='Card '+(fI+1)+' of '+fList.length}
+$('#fCard').onclick=()=>$('#fCard').classList.toggle('f');
+$('#fNext').onclick=()=>{if(fList.length){fI=(fI+1)%fList.length;fRender()}};$('#fPrev').onclick=()=>{if(fList.length){fI=(fI-1+fList.length)%fList.length;fRender()}};
+$('#fShuf').onclick=()=>{fList=shuffle(fList);fI=0;fRender()};$('#fDeck').onchange=fBuild;$('#fUnmast').onchange=fBuild;
+function mark(v){if(!fList.length)return;const m=store.get('mastered',{});m[cardId(fList[fI])]=v;store.set('mastered',m);if($('#fUnmast').checked&&v){fList.splice(fI,1);if(fI>=fList.length)fI=0;fRender()}else{fI=(fI+1)%fList.length;fRender()}}
+$('#fGot').onclick=()=>mark(true);$('#fAgain').onclick=()=>mark(false);
+$('#fSpeak').onclick=()=>{const c=fList[fI];if(c)speak(c.t+'. '+c.a)};
+document.addEventListener('keydown',e=>{if(!$('#flash').classList.contains('on')||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key===' '){e.preventDefault();$('#fCard').click()}if(e.key==='ArrowRight')$('#fNext').click();if(e.key==='ArrowLeft')$('#fPrev').click()});
+fBuild();
+
+const SCENQ=[
+{q:'A fire captain requests the aircraft for a scene. What should you get FIRST in case the call drops?',c:'A callback number (and agency/name)',w:['Patient blood pressure','The patient’s insurance','The pilot’s name']},
+{q:'When asking the pilot to check weather for a request, what patient info is commonly given to the pilot?',c:'None — the pilot decides on weather/safety without patient details',w:['Age and injuries so they can weigh the risk','Only if the patient is a child','Only the trauma level']},
+{q:'An aircraft misses a scheduled flight-following check-in. Best first action?',c:'Attempt to contact the aircraft immediately and follow the overdue-aircraft checklist',w:['Wait until the ETA passes','Call the news media','Assume radio trouble and do nothing']},
+{q:'A requester says another program already turned down this flight for weather. What do you do with that?',c:'Tell your pilot — turndowns are shared so crews don’t fly into conditions another crew declined',w:['Ignore it','Accept automatically','Keep it from the pilot to avoid bias']},
+{q:'Which is a critical LZ hazard to ask about?',c:'Overhead wires / power lines',w:['Patient allergies','Hospital parking rates','Traffic light timing']},
+{q:'Why does a coordinator ask the patient’s approximate weight?',c:'Aircraft weight & balance and stretcher/equipment limits',w:['For billing','To pick a destination','It’s not needed for aircraft']},
+{q:'You copy coordinates “41.4608, -81.6988”. Best practice?',c:'Read back every digit and confirm the format',w:['Round to 41, -81','Skip readback if busy','Send only the city name']},
+{q:'What does “standby” mean on the radio?',c:'Wait; I will get back to you',w:['Yes','No','Cancel the flight']},
+{q:'Ceiling is defined as…',c:'The lowest broken or overcast cloud layer, measured above ground',w:['The highest cloud layer','Any scattered cloud','The aircraft’s maximum altitude']},
+{q:'An interfacility STEMI transfer needs which key details?',c:'Sending unit/room, accepting physician & destination, patient weight, callback',w:['Only the patient’s name','The patient’s home address','The pilot’s license number']},
+{q:'Weather is below minimums but the patient still needs critical care transport. Reasonable option?',c:'Offer ground CCT or another appropriate resource per protocol',w:['Ask the pilot to try anyway','Tell the requester nothing','Call another program without mentioning the turndown']},
+{q:'A “hot load” means…',c:'Loading with rotors turning',w:['Loading a burn patient','Loading in summer','Loading with engines off']},
+{q:'It is 0215 EDT. What is Zulu (UTC) time?',c:'0615Z',w:['2215Z','0715Z','0115Z']},
+];
+let Q=[],qi=0,qs=0,qLock=false,qMiss=[];
+function civ(h,m){return((h%12)||12)+':'+pad(m)+' '+(h<12?'AM':'PM')}
+function mkTimeQ(){const h=Math.floor(Math.random()*24),m=Math.floor(Math.random()*12)*5;const c=civ(h,m),mil=pad(h)+pad(m);const offs=shuffle([12,1,-1,2,11,-2,-12,10]);
+ if(Math.random()<.5){const w=new Set();for(const o of offs){const v=pad((h+o+24)%24)+pad(m);if(v!==mil)w.add(v);if(w.size===3)break}return{q:'Convert '+c+' to 24-hour time',c:mil,w:[...w],ex:'Add 12 to PM hours (except 12 PM); 12 AM = 00.'}}
+ const w=new Set();for(const o of offs){const v=civ((h+o+24)%24,m);if(v!==c)w.add(v);if(w.size===3)break}return{q:'What is '+mil+' in 12-hour time?',c,w:[...w],ex:'Subtract 12 from hours 13–23 for PM; 00xx is 12:xx AM.'}}
+const spell=s=>s.split('').map(ch=>/[A-Z]/.test(ch)?PH[ch.charCodeAt(0)-65]:(NUMW[ch]||ch)).join(' ');
+function mkCardQ(c){const others=shuffle(CARDS.filter(x=>x!==c&&x.d===c.d)).slice(0,3);
+ if(c.d==='Phonetic'){if(Math.random()<.5)return{q:'Phonetic word for the letter “'+c.t+'”?',c:c.a,w:others.map(o=>o.a)};
+  const call=c.t+PH[Math.floor(Math.random()*26)][0]+Math.floor(Math.random()*10);const wr=new Set();
+  while(wr.size<3){const alt=call.split('');const i=Math.floor(Math.random()*3);alt[i]=i<2?String.fromCharCode(65+Math.floor(Math.random()*26)):String(Math.floor(Math.random()*10));const s=alt.join('');if(s!==call)wr.add(spell(s))}
+  return{q:'How do you say the ID “'+call+'” on the radio?',c:spell(call),w:[...wr],ex:'Numbers: 3 = Tree, 4 = Fower, 5 = Fife, 9 = Niner.'}}
+ if(c.d==='24-Hour Time')return mkTimeQ();
+ return Math.random()<.5?{q:'What does “'+c.t+'” mean?',c:c.a,w:others.map(o=>o.a),ex:c.ex}:{q:'Which term matches: “'+c.a+'”',c:c.t,w:others.map(o=>o.t),ex:c.ex}}
+$('#qStart').onclick=()=>{const d=$('#qDeck').value,n=+$('#qLen').value;const m=store.get('mastered',{});
+ const pool=shuffle(CARDS.filter(c=>d==='All'||c.d===d)).sort((a,b)=>(m[cardId(a)]?1:0)-(m[cardId(b)]?1:0));const sq=shuffle(SCENQ);Q=[];
+ for(let i=0;i<n;i++){if(d==='All'&&i%4===3)Q.push(sq[(i>>2)%sq.length]);else Q.push(mkCardQ(pool[i%pool.length]))}
+ Q=Q.map(x=>({...x,opts:shuffle([x.c,...x.w])}));qi=0;qs=0;qMiss=[];$('#qBox').style.display='block';qShow()};
+function qShow(){qLock=false;const x=Q[qi];$('#qProg').textContent='Q '+(qi+1)+' / '+Q.length;$('#qScore').textContent='Score '+qs;$('#qBar').style.width=(100*qi/Q.length)+'%';$('#qQ').textContent=x.q;$('#qFb').innerHTML='';$('#qNext').style.display='none';
+ $('#qOpts').innerHTML='';x.opts.forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>qAns(b,o);$('#qOpts').appendChild(b)})}
+function qAns(b,o){if(qLock)return;qLock=true;const x=Q[qi],ok=o===x.c;if(ok)qs++;else qMiss.push(x);$$('#qOpts .opt').forEach(e=>{e.disabled=true;if(e.textContent===x.c)e.classList.add('ok')});if(!ok)b.classList.add('no');
+ $('#qFb').innerHTML='<div class="fb '+(ok?'ok':'no')+'">'+(ok?'✓ Correct.':'✗ Answer: <b>'+esc(x.c)+'</b>')+(x.ex?'<br><span class="mut">'+esc(x.ex)+'</span>':'')+'</div>';$('#qScore').textContent='Score '+qs;$('#qNext').style.display='inline-block';$('#qNext').textContent=qi===Q.length-1?'Finish':'Next'}
+$('#qNext').onclick=()=>{if(qi<Q.length-1){qi++;qShow();return}const pct=Math.round(100*qs/Q.length);const h=store.get('quizHist',[]);h.unshift({d:$('#qDeck').value,pct,n:Q.length,t:new Date().toLocaleString()});store.set('quizHist',h.slice(0,30));
+ $('#qQ').textContent='Done! '+qs+' / '+Q.length+' ('+pct+'%)';$('#qOpts').innerHTML='';
+ $('#qFb').innerHTML='<div class="fb info">'+(pct>=90?'Excellent — try a longer quiz.':pct>=70?'Solid. Review the misses below.':'Keep drilling flashcards, then retry.')+'</div>'+(qMiss.length?'<div class="fb no"><b>Review:</b><ul style="margin:6px 0 0 18px;padding:0">'+qMiss.map(x=>'<li>'+esc(x.q)+' → <b>'+esc(x.c)+'</b></li>').join('')+'</ul></div>':'');
+ $('#qNext').style.display='none';$('#qBar').style.width='100%';renderQHist()};
+function renderQHist(){const h=store.get('quizHist',[]);$('#qHistT').innerHTML=h.length?'<table><tr><th>When</th><th>Deck</th><th>Q</th><th>Score</th></tr>'+h.map(x=>'<tr><td>'+esc(x.t)+'</td><td>'+esc(x.d)+'</td><td>'+x.n+'</td><td><b>'+x.pct+'%</b></td></tr>').join('')+'</table>':'No quizzes yet.'}
+renderQHist();
+const HOSP=[
+{n:'MetroHealth Main Campus Medical Center',s:'Cleveland (Clark-Fulton) · 2500 MetroHealth Dr · Level I adult trauma center',ll:[41.4608,-81.6988]},
+{n:'Cleveland Clinic Main Campus',s:'Cleveland (University Circle/Fairfax) · 9500 Euclid Ave',ll:[41.5032,-81.6213]},
+{n:'University Hospitals Cleveland Medical Center',s:'Cleveland (University Circle) · 11100 Euclid Ave · Level I trauma; campus includes UH Rainbow Babies & Children’s',ll:[41.5059,-81.6060]},
+{n:'Cleveland Clinic Fairview Hospital',s:'Cleveland (west side) · 18101 Lorain Ave',ll:[41.4494,-81.8239]},
+{n:'Cleveland Clinic Hillcrest Hospital',s:'Mayfield Heights · 6780 Mayfield Rd · Level II trauma',ll:[41.5192,-81.4346]},
+{n:'Cleveland Clinic Euclid Hospital',s:'Euclid (Cuyahoga Co.)',ll:[41.5981,-81.5484]},
+{n:'UH Ahuja Medical Center',s:'Beachwood · 3999 Richmond Rd',ll:[41.4522,-81.4950]},
+{n:'UH TriPoint Medical Center',s:'Concord Township (Lake Co.) · 7590 Auburn Rd',ll:[41.6616,-81.2467]},
+{n:'Summa Health Akron Campus (Akron City Hospital)',s:'Akron · 525 E Market St · Level I trauma',ll:[41.0807,-81.4997]},
+{n:'Cleveland Clinic Akron General',s:'Akron · 1 Akron General Ave · Level I trauma',ll:[41.0784,-81.5319]},
+{n:'Akron Children’s Hospital',s:'Akron (near Akron General) · pediatric',ll:[41.0792,-81.5275]},
+{n:'Aultman Hospital',s:'Canton (Stark Co.) · 2600 6th St SW',ll:[40.7966,-81.4038]},
+{n:'Mercy Health St. Elizabeth Youngstown Hospital',s:'Youngstown (Mahoning Co.) · 1044 Belmont Ave · Level I trauma',ll:[41.1139,-80.6569]},
+];
+const CNTY=[
+{n:'Cuyahoga County',s:'Seat: Cleveland',ll:[41.43,-81.67]},{n:'Lake County',s:'Seat: Painesville',ll:[41.70,-81.25]},{n:'Geauga County',s:'Seat: Chardon',ll:[41.50,-81.18]},
+{n:'Ashtabula County',s:'Seat: Jefferson',ll:[41.72,-80.76]},{n:'Lorain County',s:'Seat: Elyria',ll:[41.29,-82.15]},{n:'Medina County',s:'Seat: Medina',ll:[41.12,-81.90]},
+{n:'Summit County',s:'Seat: Akron',ll:[41.13,-81.53]},{n:'Portage County',s:'Seat: Ravenna',ll:[41.17,-81.20]},{n:'Trumbull County',s:'Seat: Warren',ll:[41.31,-80.76]},
+{n:'Mahoning County',s:'Seat: Youngstown',ll:[41.02,-80.78]},{n:'Stark County',s:'Seat: Canton',ll:[40.81,-81.37]},{n:'Wayne County',s:'Seat: Wooster',ll:[40.83,-81.89]},
+{n:'Huron County',s:'Seat: Norwalk',ll:[41.15,-82.60]},{n:'Erie County',s:'Seat: Sandusky',ll:[41.37,-82.62]},{n:'Columbiana County',s:'Seat: Lisbon',ll:[40.77,-80.78]}];
+HOSP.forEach(h=>h.k='h');CNTY.forEach(c=>c.k='c');
+let map,mLayer,mRound=[],mi=0,mScore=0,mWait=false;
+function hav(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function initMap(){if(mapInit){setTimeout(()=>map&&map.invalidateSize(),60);return}mapInit=true;
+ $('#mList').innerHTML='<table><tr><th>Hospital</th><th>Detail</th><th>Lat, Long</th></tr>'+HOSP.map(h=>'<tr><td>'+esc(h.n)+'</td><td class="mut">'+esc(h.s)+'</td><td style="font-family:monospace;white-space:nowrap">'+h.ll.join(', ')+'</td></tr>').join('')+'</table>';
+ if(typeof L==='undefined'){$('#map').style.display='none';$('#mapErr').style.display='block';return}
+ map=L.map('map',{zoomSnap:.25}).setView([41.25,-81.45],8.5);
+ const base=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors',maxZoom:16}).addTo(map);let fellBack=false;base.on('tileerror',()=>{if(fellBack)return;fellBack=true;map.removeLayer(base);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);toast('Using labeled OSM map (fallback)')});
+ mLayer=L.layerGroup().addTo(map);map.on('click',mClick);setTimeout(()=>map.invalidateSize(),60)}
+function study(){if(!map)return;mLayer.clearLayers();$('#mOpts').innerHTML='';
+ HOSP.forEach(h=>L.circleMarker(h.ll,{radius:7,color:'#ff5c5c',fillOpacity:.9}).bindTooltip(h.n).bindPopup('<b>'+esc(h.n)+'</b><br>'+esc(h.s)).addTo(mLayer));
+ CNTY.forEach(c=>L.marker(c.ll,{interactive:false,icon:L.divIcon({className:'',iconSize:[0,0],html:'<div style="transform:translate(-50%,-50%);color:#9fd3ff;font:700 12px system-ui;white-space:nowrap;text-shadow:0 0 3px #000,0 0 3px #000">'+c.n.replace(' County','')+'</div>'})}).addTo(mLayer));
+ $('#mPrompt').textContent='Study mode: tap red dots for hospitals; blue labels are counties (approx. centers).'}
+$('#mStudy').onclick=()=>{initMap();mRound=[];$('#mStat').textContent='';study()};
+$('#mStart').onclick=()=>{initMap();if(!map)return;const set=$('#mSet').value;const pool=set==='hosp'?HOSP:set==='cnty'?CNTY:HOSP.concat(CNTY);mRound=shuffle(pool).slice(0,10);mi=0;mScore=0;mNext()};
+function nextBtn(){const b=document.createElement('button');b.className='btn pri';b.textContent=mi>=mRound.length?'See results':'Next ▶';b.onclick=mNext;$('#mOpts').appendChild(b)}
+function mNext(){mLayer.clearLayers();mWait=false;$('#mOpts').innerHTML='';if(mi>=mRound.length)return mEnd();const t=mRound[mi];
+ $('#mStat').textContent='Item '+(mi+1)+' / '+mRound.length+' · Score '+mScore+' / '+(mi*10);
+ if($('#mMode').value==='find'){$('#mPrompt').textContent='📍 Click the map where: '+t.n;map.setView([41.25,-81.45],8.5)}
+ else{$('#mPrompt').textContent='Which location is the yellow marker?';L.circleMarker(t.ll,{radius:12,color:'#ffd36b',weight:3,fillOpacity:.5}).addTo(mLayer);map.setView(t.ll,t.k==='h'?11:9);
+  const same=(t.k==='h'?HOSP:CNTY).filter(x=>x!==t);shuffle([t,...shuffle(same).slice(0,3)]).forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o.n;b.onclick=()=>mPick(b,o);$('#mOpts').appendChild(b)})}}
+function mClick(e){if(!mRound.length||mWait||$('#mMode').value!=='find'||mi>=mRound.length)return;mWait=true;const t=mRound[mi],p=[e.latlng.lat,e.latlng.lng],d=hav(p,t.ll);
+ const tol=t.k==='h'?[2,6,15]:[12,25,45];const pts=d<=tol[0]?10:d<=tol[1]?7:d<=tol[2]?4:0;mScore+=pts;
+ L.circleMarker(p,{radius:6,color:'#7cc4ff'}).addTo(mLayer);L.circleMarker(t.ll,{radius:9,color:pts>=7?'#2ecc71':'#ff5c5c',fillOpacity:.8}).bindTooltip(t.n,{permanent:true}).addTo(mLayer);
+ L.polyline([p,t.ll],{color:'#ffd36b',dashArray:'4 6'}).addTo(mLayer);
+ $('#mPrompt').textContent=(pts>=7?'✓ ':'✗ ')+d.toFixed(1)+' km off · +'+pts+' — '+t.n+' ('+t.s+')';mi++;nextBtn()}
+function mPick(b,o){if(mWait)return;mWait=true;const t=mRound[mi],ok=o===t;if(ok)mScore+=10;$$('#mOpts .opt').forEach(e=>{e.disabled=true;if(e.textContent===t.n)e.classList.add('ok')});if(!ok)b.classList.add('no');
+ $('#mPrompt').textContent=(ok?'✓ Correct: ':'✗ It was: ')+t.n+' — '+t.s;mi++;nextBtn()}
+function mEnd(){const pct=Math.round(100*mScore/(mRound.length*10));const best=store.get('mapBest',0);if(pct>best)store.set('mapBest',pct);$('#mStat').textContent='Best: '+Math.max(pct,best)+'%';mRound=[];study();$('#mPrompt').textContent='Round complete: '+mScore+' / '+mi*10+' ('+pct+'%)'+(pct>best?' — new best!':'')+' Study the map, then go again.'}
+
+const STATUSES=[['AVL','Available'],['ENR','En route'],['ONS','On scene / at sending'],['TRN','Transporting'],['ATH','At hospital'],['RTB','Returning to base'],['WX','Weather hold'],['OOS','Out of service']];
+const UNITDEF=[{u:'AIR-1',t:'Rotor'},{u:'AIR-2',t:'Rotor'},{u:'AIR-3',t:'Rotor'},{u:'MICU-1',t:'Ground CCT'},{u:'MICU-2',t:'Ground CCT'}];
+function freshCad(){return{units:UNITDEF.map(x=>({...x,s:'AVL',since:Date.now(),loc:'Base',due:null})),log:[]}}
+let cad=store.get('cad',null)||freshCad();
+const saveCad=()=>store.set('cad',cad);
+function clog(m){cad.log.unshift(hhmm()+'  '+m);cad.log=cad.log.slice(0,300);saveCad();renderLog()}
+function renderLog(){$('#cLog').innerHTML=cad.log.map(l=>'<div>'+esc(l)+'</div>').join('')||'<div class="mut">No entries.</div>'}
+function setStatus(i,s,note){const u=cad.units[i];u.s=s;u.since=Date.now();if(note!=null)u.loc=note;
+ u.due=(u.t==='Rotor'&&['ENR','TRN','RTB'].includes(s))?Date.now()+(+$('#cInt').value)*1000:null;
+ clog(u.u+' → '+s+' ('+STATUSES.find(x=>x[0]===s)[1]+')'+(note?' · '+note:''));renderCad()}
+function renderCad(){const tb=$('#cTable tbody');tb.innerHTML='';cad.units.forEach((u,i)=>{const tr=document.createElement('tr');
+ const sel='<select data-i="'+i+'" aria-label="status">'+STATUSES.map(s=>'<option value="'+s[0]+'"'+(s[0]===u.s?' selected':'')+'>'+s[0]+' – '+s[1]+'</option>').join('')+'</select>';
+ tr.innerHTML='<td><b>'+u.u+'</b></td><td class="mut">'+u.t+'</td><td><span class="st st-'+u.s+'">'+u.s+'</span><br>'+sel+'</td><td>'+hhmm(new Date(u.since))+'</td><td><input data-loc="'+i+'" value="'+esc(u.loc)+'" style="width:100%;min-width:130px;padding:5px 8px"></td><td><span class="timer" data-tm="'+i+'">—</span></td><td>'+(u.due?'<button class="btn sm" data-ci="'+i+'">Check-in</button>':'')+'</td>';tb.appendChild(tr)});
+ $$('#cTable select').forEach(s=>s.onchange=()=>setStatus(+s.dataset.i,s.value));
+ $$('#cTable input[data-loc]').forEach(inp=>inp.onchange=()=>{const u=cad.units[+inp.dataset.loc];u.loc=inp.value;clog(u.u+' location: '+inp.value)});
+ $$('#cTable button[data-ci]').forEach(b=>b.onclick=()=>{const u=cad.units[+b.dataset.ci];const p=prompt('Position report for '+u.u+' (e.g. "5 mi S of Medina, 1200 ft, 1+30 fuel, ops normal")',u.loc);if(p===null)return;u.loc=p||u.loc;u.due=Date.now()+(+$('#cInt').value)*1000;clog(u.u+' check-in: '+(p||'ops normal'));renderCad()});
+ renderLog();tick()}
+const warned={};
+function tick(){cad.units.forEach((u,i)=>{const el=document.querySelector('[data-tm="'+i+'"]');if(!u.due){if(el){el.textContent='—';el.className='timer'}return}const r=Math.round((u.due-Date.now())/1000);
+ if(el){el.textContent=(r<0?'OVERDUE ':'')+(r<0?'+':'')+Math.floor(Math.abs(r)/60)+':'+pad(Math.abs(r)%60);el.className='timer'+(r<0?' late':r<30?' soon':'')}
+ if(r<0&&!warned[u.u+u.due]){warned[u.u+u.due]=1;clog('⚠ '+u.u+' MISSED flight-following check-in — attempt contact / start overdue checklist');toast('⚠ '+u.u+' missed check-in!')}})}
+setInterval(tick,1000);
+$('#cAdd').onclick=()=>{const v=$('#cMsg').value.trim();if(v){clog('NOTE: '+v);$('#cMsg').value=''}};$('#cMsg').onkeydown=e=>{if(e.key==='Enter')$('#cAdd').click()};
+$('#cReset').onclick=()=>{if(confirm('Reset board and log?')){cad=freshCad();saveCad();renderCad()}};
+$('#cExport').onclick=()=>{const b=new Blob([cad.log.slice().reverse().join('\n')],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='cad-log.txt';a.click()};
+const CHK=['Attempt radio contact on primary and secondary frequencies','Try other means: satellite tracking/messaging, crew cell phones','Check last known position / tracking data; log it with time','Contact ATC / flight service for any contact or radar information','Contact destination / ground contact to see if the aircraft arrived or is heard','Notify per chain: aviation operator, program leadership, on-call manager','If unresolved by the defined time: activate PAIP / request search through proper authorities','Document every action with 24-hr timestamps; stand down notified parties when resolved'];
+let chk=store.get('chk',{});
+function renderChk(){$('#cChk').innerHTML=CHK.map((c,i)=>'<label class="chk"><input type="checkbox" data-k="'+i+'"'+(chk[i]?' checked':'')+'><span>'+esc(c)+'</span></label>').join('');$$('#cChk input').forEach(x=>x.onchange=()=>{chk[x.dataset.k]=x.checked;store.set('chk',chk);if(x.checked)clog('CHECKLIST: '+CHK[x.dataset.k])})}
+renderChk();$('#cChkClr').onclick=()=>{chk={};store.set('chk',chk);renderChk()};
+const DRILLS=[[0,'ENR','Scene flight, Medina Co.','AIR-1 launched — watch the check-in timer (1-min drill)'],[1,'WX','Ceiling dropping at base','AIR-2 placed on weather hold'],[3,'ENR','IFT to tertiary ICU','MICU-1 en route'],[2,'TRN','Patient onboard → Level I trauma center','AIR-3 transporting — watch the timer']];
+$('#cDrill').onclick=()=>{$('#cInt').value='60';const d=DRILLS[Math.floor(Math.random()*DRILLS.length)];setStatus(d[0],d[1],d[2]);toast(d[3])};
+/* Simulator. Step types: choice | multi | text. A choice option may set next:'stepId' to branch. Step may set end:true. */
+const SCEN=[
+{id:'scene',title:'Scene trauma request — fire department',tags:['Scene','Trauma','LZ'],desc:'Rollover crash in a rural area. A fire captain requests the helicopter.',steps:[
+ {id:'a',from:'PHONE · Fire Captain',kind:'phone',msg:'Life Flight, this is Captain Ruiz, Township Fire. We have a rollover on State Route 18 near the county line, one patient entrapped, unresponsive. Requesting a helicopter.',type:'choice',q:'What is your FIRST priority?',opts:[
+  {t:'Get his callback number and confirm agency, then continue intake',p:10,f:'Right — if the line drops you must be able to call back. Confirm agency and name too.'},
+  {t:'Ask about the patient’s vital signs',p:3,f:'Clinical info matters later (for the crew), but a callback number comes first.'},
+  {t:'Tell him the helicopter is on the way',p:0,f:'Never promise a response before the pilot has accepted based on weather and availability.',next:'a2'}],
+  coach:'Opening intake: <b>who</b> (agency, name) and <b>how to call back</b>. Then <b>where</b>.'},
+ {id:'a2',from:'PHONE · Fire Captain',kind:'phone',msg:'Great, thanks! We’ll tell the family the helicopter is coming.',type:'choice',q:'You realize you promised too early. Recover:',opts:[
+  {t:'“Correction — I’m requesting the aircraft now; I’ll confirm once the pilot accepts. What’s your callback number?”',p:6,f:'Good recovery: use “correction,” set expectations, and get the callback.'},
+  {t:'Say nothing and hope the weather is good',p:0,f:'If the flight is declined, the scene loses time planning for an aircraft that isn’t coming.'}],coach:'Use “correction” promptly when you misspeak. Only give confirmed information.'},
+ {id:'b',from:'PHONE · Fire Captain',kind:'phone',msg:'Callback is 330-555-0142. We are on SR-18 about two miles west of the county line.',type:'multi',q:'Which location details should you obtain? (select all that apply)',opts:[
+  {t:'County and nearest cross street / landmark',p:3,ok:1},{t:'Lat/long of the LZ if available (read back every digit)',p:4,ok:1},{t:'The patient’s home address',p:-3,ok:0},{t:'Landmarks visible from the air (water tower, school, lit field)',p:2,ok:1},{t:'The patient’s insurance',p:-3,ok:0}],
+  coach:'Pilots need a precise point. Many agencies can give GPS from apparatus or CAD. Read coordinates back: <i>“north four one point one two three, west eight one point niner…”</i>'},
+ {id:'c',from:'PHONE · Fire Captain',kind:'phone',msg:'LZ will be the field on the north side of the road, about 100 by 100. Engine 2 will be ground contact on Fire Tac 3.',type:'text',q:'Type what you would ask/say next about the LZ.',kw:[['wire','power line','lines','pole'],['tower','tree','obstacle','hazard'],['slope','flat','soft','debris','snow','dust','surface'],['tac 3','channel','frequency','engine 2'],['secure','clear','keep people','vehicles']],model:'“Copy, north-side field, Engine 2 ground contact on Fire Tac 3. Any wires, poles, towers or trees near the LZ? Is it flat and firm, free of loose debris? Please keep people and vehicles back and have it secured before the aircraft arrives.”',
+  coach:'LZ hazards cause serious HEMS accidents. Ask about <b>wires</b> every time, plus obstacles, surface/slope, loose debris; read back <b>ground contact unit + channel</b>.'},
+ {id:'d',from:'INTERNAL',kind:'',msg:'[You now have location, LZ, ground contact, and patient count.]',type:'choice',q:'How do you request the flight from the pilot?',opts:[
+  {t:'“Scene request near SR-18, about 30 miles southwest of base. Can you check weather?” — no patient details',p:10,f:'Correct. The pilot decides on weather/safety, commonly shielded from patient details so emotion doesn’t pressure the decision.'},
+  {t:'“Critical trauma, unresponsive and trapped — please go!”',p:0,f:'This pressures a safety decision. Many programs withhold patient info from the pilot until acceptance.'},
+  {t:'Wait to ask until the patient is extricated',p:2,f:'Delays care. Start the weather check early; extrication runs in parallel.'}],coach:'Weather/safety decision first. Then launch, ETA, and logging.'},
+ {id:'e',from:'RADIO · AIR-1 Pilot',kind:'',msg:'Comm, AIR-1. Weather is good, we accept. Lifting in three minutes, ETE one-seven minutes.',type:'text',q:'Type what you tell the fire captain.',kw:[['eta','minutes','min'],['accept','launch','en route','enroute','lifting','coming'],['engine 2','ground contact','tac 3','channel'],['call','update','advise','change']],model:'“Captain, the aircraft has accepted and is lifting now. ETA about 20 minutes — approximately 0237. They will contact Engine 2 on Fire Tac 3. Call us at once if the patient status or LZ changes, or to cancel.”',
+  coach:'Give an ETA (lift time + ETE), confirm how the crew contacts ground, and ask them to call with changes (extricated, LZ moved, cancel).',cad:['AIR-1','ENR','Scene SR-18']},
+ {id:'f',from:'INTERNAL',kind:'',msg:'[AIR-1 departs.]',type:'choice',q:'What do you do now?',opts:[{t:'Log times, start flight following, and watch for check-ins',p:10,f:'Yes — time-stamp launch, start the flight-following timer, monitor tracking.'},{t:'Step away; the crew will call if needed',p:0,f:'Flight following is your core job while the aircraft is airborne.'}],coach:'Log request, accept, lift and ETA times. Start flight following.'}]},
+
+{id:'stemi',title:'Interfacility STEMI transfer',tags:['Interfacility','Cardiac','Weight & balance'],desc:'Community ED calls with a STEMI needing emergent cath.',steps:[
+ {id:'a',from:'PHONE · ED Nurse',kind:'phone',msg:'Hi, this is Dana in the ED at a community hospital. We have a 58-year-old STEMI who needs a cath lab. Can you send a helicopter?',type:'multi',q:'Which items should you gather? (select all that apply)',opts:[
+  {t:'Callback number and caller name',p:3,ok:1},{t:'Sending facility, unit and room',p:3,ok:1},{t:'Accepting physician / receiving facility and cath lab readiness',p:3,ok:1},{t:'Patient weight (and height if large)',p:3,ok:1},{t:'Drips/devices (e.g., heparin, balloon pump, ventilator)',p:2,ok:1},{t:'The patient’s religion',p:-3,ok:0}],
+  coach:'Interfacility intake: who/callback, sending location, diagnosis, accepting MD & destination, weight, drips/equipment. Your program’s form defines the real list.'},
+ {id:'b',from:'PHONE · ED Nurse',kind:'phone',msg:'He weighs about 330 pounds. He’s on a heparin drip and nitro.',type:'choice',q:'The patient is 330 lb. Best move?',opts:[
+  {t:'Note it and make sure the pilot/crew have the weight for weight & balance and stretcher limits',p:10,f:'Correct. Heavy patients may exceed limits or need reduced fuel/crew — the pilot and crew decide.'},
+  {t:'Ignore it — weight only matters for dosing',p:0,f:'Weight matters for aircraft weight & balance and equipment limits.'},
+  {t:'Tell the nurse he’s too heavy and decline',p:2,f:'Not your decision — pass it to the pilot/crew; there may be options (aircraft type, ground CCT).'}],coach:'Weight & balance is a pilot calculation. Your job: get an accurate weight and relay it.'},
+ {id:'c',from:'RADIO · AIR-2 Pilot',kind:'',msg:'Comm, AIR-2, weather is good. With that weight we can do it with reduced fuel. We accept.',type:'text',q:'Tell the sending nurse the plan and what to prepare.',kw:[['accept','coming','launch','en route','enroute'],['eta','minutes'],['packet','paperwork','records','ekg','copy','images'],['ready','prepare','pump','drip'],['call','update','change']],model:'“Dana, the aircraft accepted; ETA about 25 minutes. Please have the transfer packet, EKG and images ready, accepting physician confirmed, and drips on transport-ready pumps. We’ll call if the ETA changes.”',
+  coach:'Give ETA; prompt the sending team to have the patient ready so bedside time is short. STEMI = time is muscle.',cad:['AIR-2','ENR','IFT STEMI']},
+ {id:'d',from:'PHONE · Receiving Cath Lab',kind:'phone',msg:'This is the cath lab charge nurse — what’s the ETA to us?',type:'choice',q:'Best response?',opts:[{t:'Give the current ETA as a clock time and say you’ll update if it changes',p:10,f:'Clear, specific, with a commitment to update.'},{t:'“Soon, they’re flying.”',p:0,f:'Vague answers complicate cath lab mobilization. Give a time.'}],coach:'Use 24-hr clock time to avoid ambiguity: “ETA 0312.”'}]},
+
+{id:'stroke',title:'Stroke transfer (suspected LVO)',tags:['Interfacility','Stroke','Weather'],desc:'A stroke patient needs thrombectomy at a comprehensive stroke center.',steps:[
+ {id:'a',from:'PHONE · ED Physician',kind:'phone',msg:'This is Dr. Patel at a rural ED. 71-year-old female, suspected large vessel occlusion. Needs thrombectomy. Neuro at a comprehensive stroke center has accepted.',type:'text',q:'What time-critical details do you ask for?',kw:[['last known well','lkw','last seen normal','onset'],['tpa','tnk','thrombolytic','lytic','alteplase','tenecteplase'],['weight','kg','lb','pound'],['callback','number','phone'],['ct','cta','imag']],model:'“Callback number, please. What was the last-known-well time? Has she received a thrombolytic (tPA/TNK), and when? Approximate weight? Are images being sent to the receiving hospital?”',
+  coach:'Last-known-well time and thrombolytic timing drive stroke care. Get them, plus weight and callback.'},
+ {id:'b',from:'RADIO · AIR-3 Pilot',kind:'',msg:'Comm, AIR-3. Our area is fine, but there are thunderstorms building west of the sending hospital. Give me a couple minutes to look.',type:'choice',q:'While you wait, what do you do?',opts:[
+  {t:'Tell the physician it’s being evaluated with a callback time; quietly check ground CCT availability as a backup',p:10,f:'Excellent — parallel planning prevents delay if the pilot declines.'},
+  {t:'Push the pilot: “It’s a stroke, we really need to go”',p:0,f:'Never pressure a weather decision.'},
+  {t:'Hang up and wait silently',p:3,f:'Keep the requester informed with a callback time.'}],coach:'Parallel planning: line up alternatives while weather is checked.'},
+ {id:'c',from:'RADIO · AIR-3 Pilot',kind:'',msg:'Comm, AIR-3 — we’re turning this one down for convective activity on the route.',type:'choice',q:'Next steps?',opts:[
+  {t:'Notify the requester promptly, offer ground CCT (or another resource per protocol), and log the turndown',p:10,f:'Correct. Any other service contacted must be told it was a weather turndown.'},
+  {t:'Ask another base if they’ll take it without mentioning the turndown',p:0,f:'“Helicopter shopping” is a known safety hazard. Disclose turndowns.'},
+  {t:'Wait 30 minutes to see if storms move',p:2,f:'Stroke is time-critical — offer alternatives now.'}],coach:'Turndowns are logged and shared. Time-critical patients need a prompt alternate plan.',cad:['AIR-3','WX','Convective wx — stroke IFT declined']}]},
+
+{id:'wx',title:'Weather turndown & “shopping” pressure',tags:['Weather','Safety','Branching'],desc:'A requester tries to get a flight after another program declined.',steps:[
+ {id:'a',from:'PHONE · EMS Supervisor',kind:'phone',msg:'We need a helicopter for a scene. Another service already said no, something about weather, but maybe you guys can do it?',type:'choice',q:'What do you do with the info that another program turned it down?',opts:[
+  {t:'Tell your pilot that another program declined for weather when asking for a weather check',p:10,f:'Correct — the pilot needs the full picture for a safe decision.'},
+  {t:'Leave that detail out so the pilot isn’t biased',p:0,f:'Withholding a prior weather turndown is a safety risk.',next:'a2'},
+  {t:'Refuse to even ask your pilot',p:3,f:'Your pilot may still evaluate it — conditions can differ — but they need the full picture.'}],coach:'Many regions use shared turndown notifications precisely to stop “shopping.”'},
+ {id:'a2',from:'RADIO · AIR-1 Pilot',kind:'',msg:'Comm, AIR-1. Did anyone else get asked about this flight first?',type:'choice',q:'The pilot asks directly. You:',opts:[{t:'“Affirmative — another service declined for weather. Sorry, I should have told you up front.”',p:6,f:'Honest correction. Lesson learned: disclose up front.'},{t:'“Negative.”',p:0,f:'Never give false information on a safety question.'}],coach:'Honesty and full disclosure are non-negotiable in aviation safety.'},
+ {id:'b',from:'RADIO · AIR-1 Pilot',kind:'',msg:'Comm, AIR-1: ceiling near the scene is about 500 overcast, visibility one mile in snow. That’s below our minimums. We decline.',type:'text',q:'Type how you deliver the turndown to the supervisor.',kw:[['weather','wx','ceiling','visibility','minimums'],['ground','ambulance','cct','mobile'],['sorry','unable','decline','not able','cannot'],['call','update','improve','back']],model:'“I’m sorry, our aircraft is unable due to weather — low ceilings and visibility below minimums. I recommend ground transport to the closest appropriate facility, and we can offer a ground critical care unit if appropriate. We’ll call you if conditions change.”',
+  coach:'Be clear, brief and firm on safety; offer alternatives right away; log time and reason.',cad:['AIR-1','WX','Scene request declined — wx']},
+ {id:'c',from:'PHONE · EMS Supervisor',kind:'phone',msg:'Come on, it’s just a little snow. The patient is really bad.',type:'choice',q:'Response?',opts:[{t:'Empathize, hold the line: “The pilot’s decision is final for safety; here’s what we can do instead.”',p:10,f:'Exactly — empathetic, firm, solution-focused.'},{t:'“Let me see if I can talk him into it.”',p:0,f:'Never pressure a pilot to reverse a weather turndown.'}],coach:'“Three to go, one to say no” — any crew member can decline, and nobody second-guesses a turndown.'}]},
+
+{id:'overdue',title:'Missed check-in / overdue aircraft',tags:['Flight following','PAIP','Emergency'],desc:'An aircraft misses its flight-following check-in at night.',steps:[
+ {id:'a',from:'SYSTEM',kind:'',msg:'[0247] AIR-2 is en route to a scene. The 15-minute check-in was due at 0245. No call. Satellite tracking shows the last position update 6 minutes ago.',type:'choice',q:'First action?',opts:[
+  {t:'Call AIR-2 on the primary radio; if no answer, try secondary and other means immediately',p:10,f:'Yes — start contact attempts right away. Many missed check-ins are radio issues, but you never assume that.'},
+  {t:'Wait for the next 15-minute check-in',p:0,f:'Too slow. Overdue procedures are time-based and start now.'},
+  {t:'Call 911 without trying to contact the aircraft',p:3,f:'Escalation may come, but first attempt contact per your PAIP.'}],coach:'Missed check-in → immediate contact attempts, documented with times.',cad:['AIR-2','ENR','Scene — check-in MISSED']},
+ {id:'b',from:'SYSTEM',kind:'',msg:'[0249] No answer on primary or secondary. Tracking still not updating.',type:'multi',q:'What else do you do now? (select all that apply)',opts:[
+  {t:'Try crew cell phones / satellite messaging',p:3,ok:1},{t:'Contact ATC / flight service for any contact or radar',p:3,ok:1},{t:'Call the scene ground contact — do they hear or see the aircraft?',p:3,ok:1},{t:'Notify your supervisor / chain per PAIP',p:3,ok:1},{t:'Post on social media asking if anyone saw a helicopter',p:-5,ok:0},{t:'Record last known position, heading and time',p:3,ok:1}],
+  coach:'These mirror typical PAIP elements — your program’s plan dictates order and timing. Keep a calm, written timeline. (See the checklist on the CAD Board.)'},
+ {id:'c',from:'RADIO · AIR-2',kind:'',msg:'[0251] Comm, AIR-2, sorry — radio issue through the valley. Ops normal, five minutes from the scene.',type:'text',q:'Type your response to AIR-2.',kw:[['copy','roger'],['ops normal','operations normal','five minutes','5 minutes','position'],['0251','time'],['next','check','15','fifteen']],model:'“AIR-2, Comm copies ops normal, five minutes from the scene at 0251. Next check-in in one-five minutes. Advise on the ground.”',
+  coach:'Acknowledge, log the time, re-establish the check-in schedule — then stand down everyone you escalated to.'},
+ {id:'d',from:'INTERNAL',kind:'',msg:'[Aircraft accounted for.]',type:'choice',q:'Final step?',opts:[{t:'Notify everyone already contacted that the aircraft is located, and complete documentation',p:10,f:'Closing the loop prevents unnecessary resources responding.'},{t:'Nothing — it worked out',p:0,f:'People you alerted still think the aircraft is missing.'}],coach:'Stand-down notifications + documentation. Report radio dead spots so they can be addressed.'}]},
+
+{id:'lz',title:'LZ hazard report',tags:['Scene','LZ','Readback'],desc:'Ground contact reports hazards as the aircraft approaches.',steps:[
+ {id:'a',from:'RADIO · Engine 4',kind:'',msg:'Life Flight Comm, Engine 4. Be advised, power lines run along the east edge of the LZ, and there’s a light pole near the southwest corner.',type:'text',q:'Type your readback and what you do with it.',kw:[['power line','wires','lines'],['east'],['light pole','pole'],['southwest','sw','south west'],['relay','advise','aircraft','pilot','air-1','air 1']],model:'“Engine 4, Comm copies: power lines along the east edge, light pole at the southwest corner. Relaying to the aircraft now.” — then immediately relay to AIR-1.',
+  coach:'Hazards must be read back exactly and relayed to the crew <b>immediately</b>. Direction matters.',cad:['AIR-1','ENR','Scene — LZ hazards reported']},
+ {id:'b',from:'RADIO · AIR-1',kind:'',msg:'Comm, AIR-1, copy the hazards. We’d like a different LZ — anything clear nearby?',type:'choice',q:'Best action?',opts:[{t:'Ask Engine 4 for an alternate LZ (or have AIR-1 work it directly with them on the tactical channel)',p:10,f:'Good — ground contact knows the area; direct crew-to-ground talk is often fastest.'},{t:'Pick a parking lot you see on an online map yourself',p:3,f:'Map views miss real hazards. Let ground contact evaluate and secure an LZ.'}],coach:'Ground contact selects and secures LZs; the pilot has the final say.'},
+ {id:'c',from:'RADIO · Engine 4',kind:'',msg:'We can use the school parking lot 300 yards north. We’ll have it cleared and secured in five minutes.',type:'choice',q:'What else should be confirmed?',opts:[{t:'Lot clear of vehicles/people, light poles/wires, surface (snow/ice/debris), and ground contact stays on the same channel',p:10,f:'Thorough. Parking lots often have light poles and loose debris.'},{t:'Nothing — just relay it',p:2,f:'A new LZ gets a new hazard check.'}],coach:'Every new LZ gets the same hazard questions.'}]},
+
+{id:'ground',title:'Ground critical care transport request',tags:['Ground CCT','Interfacility'],desc:'A hospital needs a ground CCT unit for a ventilated patient.',steps:[
+ {id:'a',from:'PHONE · ICU Charge Nurse',kind:'phone',msg:'Hi, this is Mark in the ICU. We need critical care transport for a ventilated patient on two pressors, going to a tertiary ICU across town. Weather is terrible, so ground is fine.',type:'multi',q:'What do you gather? (select all that apply)',opts:[
+  {t:'Callback, sending unit/room',p:3,ok:1},{t:'Accepting physician and bed assignment',p:3,ok:1},{t:'Vent settings / O2 needs, number of drips & pumps',p:3,ok:1},{t:'Weight, isolation status, special equipment (e.g., bariatric)',p:3,ok:1},{t:'Patient’s favorite food',p:-3,ok:0}],
+  coach:'Ground CCT needs equipment-level detail so the team brings enough pumps, oxygen, and the right stretcher.'},
+ {id:'b',from:'INTERNAL',kind:'',msg:'[MICU-1 is available; MICU-2 is committed.]',type:'choice',q:'How do you handle the ETA?',opts:[{t:'Give a realistic ETA including travel and weather, and update if it changes',p:10,f:'Realistic ETAs maintain trust with sending units.'},{t:'Say “right away”',p:0,f:'Use specific times only.'}],coach:'Assign MICU-1, log times, give a realistic ETA.',cad:['MICU-1','ENR','IFT vent patient']},
+ {id:'c',from:'RADIO · MICU-1',kind:'',msg:'Comm, MICU-1, on location at the sending facility, 0332.',type:'text',q:'Type your acknowledgment.',kw:[['copy','roger'],['micu-1','micu 1','micu one'],['0332','time'],['sending','location','on scene']],model:'“MICU-1, Comm copies on location at sending, 0332.”',coach:'Short, specific acknowledgments with timestamps.',cad:['MICU-1','ONS','At sending ICU']}]},
+
+{id:'simul',title:'Simultaneous requests — limited resources',tags:['Prioritization','Multi-call'],desc:'Two requests arrive while only one aircraft is available.',steps:[
+ {id:'a',from:'SYSTEM',kind:'',msg:'[0105] AIR-1 is on a scene. AIR-3 is out of service for maintenance. Only AIR-2 is available. A hospital calls for a stable interfacility transfer; a minute later, a fire department requests a scene flight for a critical burn patient.',type:'choice',q:'How do you approach this?',opts:[
+  {t:'Gather both requests fully, involve supervisor/medical direction per prioritization policy, and tell each requester honestly about availability',p:10,f:'Prioritization rules belong to protocol and leadership. Transparency lets requesters seek alternatives quickly.'},
+  {t:'Strictly first-come, first-served',p:3,f:'Some programs have prioritization rules beyond order received — know yours.'},
+  {t:'Tell both to call someone else',p:0,f:'You can still help — and offer alternatives/mutual aid properly.'}],coach:'When resources are short, escalate early and communicate clearly.',cad:['AIR-3','OOS','Maintenance']},
+ {id:'b',from:'PHONE · Fire Dept',kind:'phone',msg:'How long until we can get a helicopter?',type:'text',q:'Type an honest, useful answer.',kw:[['available','committed','unavailable'],['eta','minutes'],['alternat','another','mutual','ground'],['call','update','back']],model:'“Our nearest available aircraft is AIR-2; pending a weather check, ETA would be about 22 minutes. If that’s too long I can contact a mutual-aid service, or you may want to begin ground transport. I’ll call you right back with the pilot’s answer.”',
+  coach:'Give facts, an ETA, alternatives, and a commitment to call back.'}]}
+];
+let S=null,sid=null,spts=0,smax=0,shist=[],sCount=0,sNextId=null;
+function renderScen(){const r=store.get('simRes',{});$('#scenList').innerHTML=SCEN.map(s=>'<div class="card scen" data-id="'+s.id+'" tabindex="0"><h3>'+esc(s.title)+'</h3><div>'+s.tags.map(t=>'<span class="tag">'+t+'</span>').join('')+'</div><p class="mut">'+esc(s.desc)+'</p><div class="row"><span class="pill">'+s.steps.length+' steps</span>'+(r[s.id]!=null?'<span class="pill" style="color:#7fe3a0">best '+r[s.id]+'%</span>':'<span class="pill">not attempted</span>')+'</div></div>').join('');
+ $$('.scen').forEach(c=>{c.onclick=()=>startScen(c.dataset.id);c.onkeydown=e=>{if(e.key==='Enter')startScen(c.dataset.id)}})}
+renderScen();
+const branchOnly=S0=>new Set(S0.steps.flatMap(st=>(st.opts||[]).map(o=>o.next).filter(Boolean)));
+function startScen(id){S=SCEN.find(x=>x.id===id);sid=S.steps[0].id;spts=0;smax=0;shist=[];sCount=0;$('#simPick').style.display='none';$('#simEnd').style.display='none';$('#simRun').style.display='block';$('#sTitle').textContent=S.title;$('#sNotes').value='';if($('#sCad').checked)clog('SIM START: '+S.title);showStep();window.scrollTo(0,0)}
+function stepMax(st){if(st.type==='choice')return Math.max(...st.opts.map(o=>o.p));if(st.type==='multi')return st.opts.filter(o=>o.ok).reduce((a,o)=>a+o.p,0);return st.kw.length*2}
+const curStep=()=>S.steps.find(s=>s.id===sid);
+function mainLen(){return S.steps.length-branchOnly(S).size}
+function showStep(){const st=curStep();sCount++;const n=mainLen();$('#sStep').textContent=(branchOnly(S).has(st.id)?'Branch':'Step '+Math.min(sCount,n)+' / '+n);$('#sPts').textContent=spts+' pts';$('#sBar').style.width=Math.min(100,100*(sCount-1)/n)+'%';
+ let h='<div class="radio '+(st.kind||'')+'"><span class="who">'+esc(st.from)+':</span>\n'+esc(st.msg)+'</div><h3 style="margin-top:12px">'+esc(st.q)+'</h3>';
+ if(st.type==='choice')h+=shuffle(st.opts.map((o,i)=>({...o,i}))).map(o=>'<button class="opt" data-i="'+o.i+'">'+esc(o.t)+'</button>').join('');
+ if(st.type==='multi')h+=st.opts.map((o,i)=>'<label class="chk"><input type="checkbox" data-i="'+i+'"><span>'+esc(o.t)+'</span></label>').join('')+'<button class="btn pri" id="sSub">Submit</button>';
+ if(st.type==='text')h+='<textarea id="sTxt" placeholder="Type your response as you would say it…"></textarea><div class="row" style="margin-top:6px"><button class="btn pri" id="sSub">Submit</button><span class="mut" style="font-size:13px">Scored on key elements; compare with the model answer.</span></div>';
+ h+='<div id="sFb"></div>';$('#sBody').innerHTML=h;
+ if(st.type==='choice')$$('#sBody .opt').forEach(b=>b.onclick=()=>answer(st,{i:+b.dataset.i,el:b}));else $('#sSub').onclick=()=>answer(st,{});
+ if($('#sSpeak').checked)speak(st.from.split('·').pop()+'. '+st.msg)}
+$('#sRead').onclick=()=>{if(S)speak(curStep().msg)};
+function answer(st,a){const mx=stepMax(st);smax+=mx;let got=0,fb='';sNextId=null;
+ if(st.type==='choice'){const o=st.opts[a.i];got=o.p;sNextId=o.next||null;$$('#sBody .opt').forEach(b=>{b.disabled=true;if(st.opts[+b.dataset.i].p===mx)b.classList.add('ok')});if(o.p<mx)a.el.classList.add('no');fb='<div class="fb '+(o.p===mx?'ok':'no')+'">'+esc(o.f)+'</div>'}
+ if(st.type==='multi'){$$('#sBody input[type=checkbox]').forEach(c=>{c.disabled=true;const o=st.opts[+c.dataset.i];if(c.checked)got+=o.p;c.parentElement.style.borderColor=o.ok?'var(--ok)':'var(--bad)';if(c.checked!==!!o.ok)c.parentElement.style.background=o.ok?'#11301f':'#301414'});got=Math.max(0,got);$('#sSub').disabled=true;
+  fb='<div class="fb '+(got===mx?'ok':'info')+'">You scored '+got+' / '+mx+'. Green border = should gather; red = not relevant or inappropriate. Shaded = you missed or wrongly picked it.</div>'}
+ if(st.type==='text'){const t=($('#sTxt').value||'').toLowerCase();const hit=st.kw.map(g=>g.some(k=>t.includes(k)));got=hit.filter(Boolean).length*2;$('#sTxt').disabled=true;$('#sSub').disabled=true;
+  fb='<div class="fb '+(got>=mx*.6?'ok':'info')+'">Key elements covered: '+hit.filter(Boolean).length+' / '+hit.length+'<ul style="margin:6px 0 0 18px;padding:0">'+st.kw.map((g,i)=>'<li>'+(hit[i]?'✓':'○')+' '+esc(g.slice(0,3).join(' / '))+'</li>').join('')+'</ul><b>Model answer:</b> '+esc(st.model)+'</div>'}
+ spts+=got;shist.push({q:st.q,got,mx,coach:st.coach});
+ if(st.cad&&$('#sCad').checked){const i=cad.units.findIndex(u=>u.u===st.cad[0]);if(i>=0)setStatus(i,st.cad[1],st.cad[2])}
+ const last=!sNextId&&nextMainId(st)===null;
+ $('#sFb').innerHTML=fb+'<div class="coach"><b>🎧 Coach:</b> '+st.coach+'</div><div class="row" style="margin-top:10px"><button class="btn pri" id="sNext">'+(last?'Finish & debrief':'Next ▶')+'</button></div>';
+ $('#sPts').textContent=spts+' pts';$('#sNext').onclick=()=>{const nx=sNextId||nextMainId(st);if(nx){sid=nx;showStep()}else endScen()};$('#sNext').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function nextMainId(st){const b=branchOnly(S);let i=S.steps.indexOf(st)+1;while(i<S.steps.length&&b.has(S.steps[i].id))i++;return i<S.steps.length?S.steps[i].id:null}
+function endScen(){const pct=smax?Math.round(100*spts/smax):0;const r=store.get('simRes',{});if(r[S.id]==null||pct>r[S.id])r[S.id]=pct;store.set('simRes',r);if($('#sCad').checked)clog('SIM END: '+S.title+' — '+pct+'%');
+ $('#simRun').style.display='none';const e=$('#simEnd');e.style.display='block';
+ e.innerHTML='<h2>Debrief — '+esc(S.title)+'</h2><div class="row"><div class="stat">'+pct+'%</div><span class="pill">'+spts+' / '+smax+' pts</span></div><p class="mut">'+(pct>=85?'Strong call handling.':pct>=60?'Good foundation — review the coaching below.':'Run it again after reviewing Flashcards and the Reference tab.')+'</p><table><tr><th>Decision point</th><th>Points</th></tr>'+shist.map((x,i)=>'<tr><td>'+(i+1)+'. '+esc(x.q)+'</td><td style="white-space:nowrap">'+(x.got===x.mx?'✓ ':'')+x.got+' / '+x.mx+'</td></tr>').join('')+'</table>'+
+ '<div class="coach" style="margin-top:12px"><b>Key takeaways</b><ul>'+shist.map(x=>'<li>'+x.coach+'</li>').join('')+'</ul></div><p class="mut" style="margin-top:10px">Reminder: generic practice only. MetroHealth / Metro Life Flight protocols and your preceptor take precedence.</p><div class="row"><button class="btn pri" id="eAgain">Run again</button><button class="btn" id="eBack">All scenarios</button><button class="btn" id="eCad">View CAD log</button></div>';
+ $('#eAgain').onclick=()=>startScen(S.id);$('#eBack').onclick=simHome;$('#eCad').onclick=()=>go('cad');renderScen()}
+function simHome(){$('#simRun').style.display='none';$('#simEnd').style.display='none';$('#simPick').style.display='block';renderScen();try{speechSynthesis.cancel()}catch(e){}}
+$('#sQuit').onclick=()=>{if(confirm('Exit this call?'))simHome()};
+
+$('#rPh').innerHTML=PH.map(w=>'<tr><td>'+w[0]+'</td><td>'+w+'</td></tr>').join('');
+$('#rTc').onclick=()=>{const v=$('#rT').value.trim().toLowerCase().replace(/\./g,'');let o,m=v.match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm|a|p)$/);
+ if(m&&+m[1]>=1&&+m[1]<=12){let h=+m[1]%12;if(m[3][0]==='p')h+=12;o=pad(h)+(m[2]||'00')+' hours'}else if((m=v.match(/^(\d{1,2}):?(\d{2})$/))&&+m[1]<24&&+m[2]<60){o=civ(+m[1],+m[2])}else o='Try “9:30 pm” or “2130”.';$('#rTo').style.display='block';$('#rTo').textContent=o};
+$('#rSc').onclick=()=>{$('#rSo').style.display='block';$('#rSo').textContent=$('#rS').value.toUpperCase().split('').map(c=>/[A-Z]/.test(c)?PH[c.charCodeAt(0)-65]:NUMW[c]||(c===' '?'/':c)).join(' ')};
+$('#rLc').onclick=()=>{const v=$('#rL').value.trim();let o,m=v.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+ const dm=(x,p,n)=>{const a=Math.abs(x),d=Math.floor(a);return(x>=0?p:n)+d+'° '+((a-d)*60).toFixed(2)+'′'};
+ if(m)o=dm(+m[1],'N','S')+'  '+dm(+m[2],'E','W');else if(m=v.match(/([NS])\s*(\d+)[°\s]+(\d+(?:\.\d+)?)\D*([EW])\s*(\d+)[°\s]+(\d+(?:\.\d+)?)/i)){const la=(+m[2]+m[3]/60)*(m[1].toUpperCase()==='S'?-1:1),lo=(+m[5]+m[6]/60)*(m[4].toUpperCase()==='W'?-1:1);o=la.toFixed(5)+', '+lo.toFixed(5)}else o='Format not recognized.';$('#rLo').style.display='block';$('#rLo').textContent=o};
+['rT','rS','rL'].forEach(id=>$('#'+id).onkeydown=e=>{if(e.key==='Enter')$('#'+id+'c').click()});
+
+renderHome();renderCad();
+const h0=location.hash.slice(1);if(h0&&document.getElementById(h0)&&$('#tabs [data-t="'+h0+'"]'))go(h0);
+</script>
+</body>
+</html>
